@@ -1,10 +1,14 @@
 # Terraform
 **/.terraform/
-**/.terraform.lock.hcl
+.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
 *.tfvars.json
+*.tfplan
+*-plan-*
+tfplan-*
+destroy-plan-*
 
 # OS
 .DS_Store
