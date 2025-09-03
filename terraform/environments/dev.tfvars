@@ -20,9 +20,9 @@ public_subnet_cidrs = [
 
 # ECS Mixed Capacity (20% On-Demand, 80% Spot)
 ecs_capacity_providers = {
-  fargate_weight      = 20
-  fargate_spot_weight = 80
-  fargate_base        = 1
+  fargate_weight      = 10
+  fargate_spot_weight = 90
+  fargate_base        = 0 # Minimum ECS Task Ondemand
 }
 
 # Environment-specific tags
