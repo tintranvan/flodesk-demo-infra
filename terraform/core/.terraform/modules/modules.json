@@ -1,1 +1,0 @@
-{"Modules":[{"Key":"eventbridge","Source":"../modules/eventbridge","Dir":"../modules/eventbridge"},{"Key":"vpc","Source":"../modules/vpc","Dir":"../modules/vpc"},{"Key":"","Source":"","Dir":"."},{"Key":"api_gateway","Source":"../modules/api-gateway","Dir":"../modules/api-gateway"},{"Key":"ecs_cluster","Source":"../modules/ecs-cluster","Dir":"../modules/ecs-cluster"}]}
