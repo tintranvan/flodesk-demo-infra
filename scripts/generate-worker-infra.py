@@ -49,6 +49,9 @@ def generate_worker_terraform(service_path, environment):
   }}
 }}
 
+# Data sources
+data "aws_caller_identity" "current" {{}}
+
 # ECR Repository (use existing)
 data "aws_ecr_repository" "{name.replace('-', '_')}_repo" {{
   name = "{name}-{environment}"
@@ -127,6 +130,30 @@ resource "aws_sqs_queue" "{name.replace('-', '_')}_dlq" {{
     Environment = "{environment}"
     Service     = "{name}"
   }}
+}}
+
+# SQS Queue Policy for EventBridge
+resource "aws_sqs_queue_policy" "{name.replace('-', '_')}_queue_policy" {{
+  queue_url = aws_sqs_queue.{name.replace('-', '_')}_queue.id
+
+  policy = jsonencode({{
+    Version = "2012-10-17"
+    Statement = [
+      {{
+        Effect = "Allow"
+        Principal = {{
+          Service = "events.amazonaws.com"
+        }}
+        Action = "sqs:SendMessage"
+        Resource = aws_sqs_queue.{name.replace('-', '_')}_queue.arn
+        Condition = {{
+          StringEquals = {{
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }}
+        }}
+      }}
+    ]
+  }})
 }}
 
 # SQS Queue Policy
@@ -486,7 +513,7 @@ resource "aws_cloudwatch_metric_alarm" "{name.replace('-', '_')}_scale_up_alarm"
   evaluation_periods  = "1"
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = "30"
+  period              = "10"
   statistic           = "Sum"
   threshold           = "{scaling.get('metrics', [{}])[0].get('target_value', 10) if scaling.get('metrics') else scaling.get('target_value', 10)}"
   alarm_description   = "Scale up when visible messages > threshold"
@@ -511,7 +538,7 @@ resource "aws_cloudwatch_metric_alarm" "{name.replace('-', '_')}_scale_down_alar
   evaluation_periods  = "1"
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = "30"
+  period              = "10"
   statistic           = "Sum"
   threshold           = "{int(scaling.get('metrics', [{}])[0].get('target_value', 10) if scaling.get('metrics') else scaling.get('target_value', 10)) // 2}"
   alarm_description   = "Scale down when visible messages <= threshold"
