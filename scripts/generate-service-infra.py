@@ -269,6 +269,10 @@ output "lambda_arn" {{
 output "api_gateway_url" {{
   value = data.terraform_remote_state.core.outputs.api_gateway_invoke_url
 }}
+
+output "api_gateway_stage" {{
+  value = "{service_config.get('stage', 'latest')}"
+}}
 '''
     
     return tf_content
