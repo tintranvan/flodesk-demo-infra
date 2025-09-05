@@ -263,8 +263,9 @@ resource "aws_iam_role_policy" "eventbridge_policy" {{
     
     # Generate endpoints output
     endpoints_output = ""
-    for endpoint in service_config.get('api', {}).get('endpoints', []):
-        endpoints_output += f'    "{endpoint["method"]} {endpoint["path"]}" = "${{data.terraform_remote_state.core.outputs.api_gateway_invoke_url}}/{service_config.get("stage", "latest")}{endpoint["path"]}"\n'
+    for endpoint in service_config.get('routing', []):
+        base_url = "${replace(data.terraform_remote_state.core.outputs.api_gateway_invoke_url, \"/v1\", \"/" + service_config.get('stage', 'latest') + "\")}"
+        endpoints_output += f'    "{endpoint["method"]} {endpoint["path"]}" = "{base_url}{endpoint["path"]}"\n'
     
     tf_content += f'''# Outputs
 output "lambda_arn" {{
@@ -272,7 +273,7 @@ output "lambda_arn" {{
 }}
 
 output "api_gateway_url" {{
-  value = "${{data.terraform_remote_state.core.outputs.api_gateway_invoke_url}}/{service_config.get('stage', 'latest')}"
+  value = "${{replace(data.terraform_remote_state.core.outputs.api_gateway_invoke_url, "/v1", "/{service_config.get('stage', 'latest')}")}}"
 }}
 
 output "api_gateway_stage" {{
