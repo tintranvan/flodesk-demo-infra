@@ -205,7 +205,11 @@ resource "aws_ecs_task_definition" "{name.replace('-', '_')}_task" {{
         {{ name = "SERVICE_NAME", value = "{name}" }},
         {{ name = "ENVIRONMENT", value = "{environment}" }},
         {{ name = "PORT", value = "8080" }},
-        {{ name = "SQS_QUEUE_URL", value = aws_sqs_queue.{name.replace('-', '_')}_queue.url }}
+        {{ name = "SQS_QUEUE_URL", value = aws_sqs_queue.{name.replace('-', '_')}_queue.url }},
+        # Application Signals
+        {{ name = "_X_AMZN_TRACE_ID", value = "" }},
+        {{ name = "OTEL_PROPAGATORS", value = "tracecontext,baggage,xray" }},
+        {{ name = "OTEL_RESOURCE_ATTRIBUTES", value = "service.name={name},service.version=1.0,deployment.environment={environment}" }}
       ]'''
 
     # Add secrets if defined
@@ -231,6 +235,12 @@ resource "aws_ecs_task_definition" "{name.replace('-', '_')}_task" {{
           "awslogs-region"        = "us-east-1"
           "awslogs-stream-prefix" = "ecs"
         }}
+      }}
+      
+      # Application Signals service tags
+      dockerLabels = {{
+        "application-signals.service.name" = "{name}"
+        "application-signals.environment" = "{environment}"
       }}
     }}
   ])
@@ -373,6 +383,30 @@ resource "aws_iam_role_policy" "sqs_policy" {{
           aws_sqs_queue.{name.replace('-', '_')}_queue.arn,
           aws_sqs_queue.{name.replace('-', '_')}_dlq.arn
         ]
+      }}
+    ]
+  }})
+}}
+
+# Application Signals Permissions
+resource "aws_iam_role_policy" "app_signals_policy" {{
+  name = "{environment}-{name}-app-signals-policy"
+  role = aws_iam_role.task_role.id
+
+  policy = jsonencode({{
+    Version = "2012-10-17"
+    Statement = [
+      {{
+        Effect = "Allow"
+        Action = [
+          "application-signals:*",
+          "cloudwatch:PutMetricData",
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
+        ]
+        Resource = "*"
       }}
     ]
   }})

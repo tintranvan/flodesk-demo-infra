@@ -55,8 +55,16 @@ resource "aws_lambda_function" "{name.replace('-', '_')}" {{
   timeout      = {timeout}
   architectures = ["{service_config.get('resources', {}).get('architecture', 'arm64')}"]
   
-  # Web Adapter Layer
-  layers = ["arn:aws:lambda:us-east-1:753240598075:layer:LambdaAdapterLayerArm64:25"]
+  # Enable Application Signals tracing
+  tracing_config {{
+    mode = "Active"
+  }}
+  
+  # Web Adapter Layer + Application Signals Layer
+  layers = [
+    "arn:aws:lambda:us-east-1:753240598075:layer:LambdaAdapterLayerArm64:25",
+    "arn:aws:lambda:us-east-1:901920570463:layer:aws-otel-collector-arm64-ver-0-102-1:1"
+  ]
   
   # Publish version for API Gateway integration
   publish = true
@@ -76,7 +84,18 @@ resource "aws_lambda_function" "{name.replace('-', '_')}" {{
       AWS_LAMBDA_EXEC_WRAPPER = "/opt/bootstrap"
       AWS_LWA_ASYNC_INIT = "true"
       AWS_LWA_READINESS_CHECK_PATH = "/health"
+      # Application Signals
+      _X_AMZN_TRACE_ID = ""
+      OTEL_PROPAGATORS = "tracecontext,baggage,xray"
     }}
+  }}
+  
+  # Application Signals service tags
+  tags = {{
+    Environment = "{environment}"
+    Service = "{name}"
+    "application-signals:service.name" = "{name}"
+    "application-signals:environment" = "{environment}"
   }}
 }}
 
@@ -104,6 +123,34 @@ resource "aws_iam_role" "lambda_role" {{
 resource "aws_iam_role_policy_attachment" "lambda_basic" {{
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   role       = aws_iam_role.lambda_role.name
+}}
+
+# Application Signals permissions
+resource "aws_iam_role_policy_attachment" "lambda_xray" {{
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+  role       = aws_iam_role.lambda_role.name
+}}
+
+resource "aws_iam_role_policy" "lambda_app_signals" {{
+  name = "{environment}-{name}-app-signals"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({{
+    Version = "2012-10-17"
+    Statement = [
+      {{
+        Effect = "Allow"
+        Action = [
+          "application-signals:*",
+          "cloudwatch:PutMetricData",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream", 
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }}
+    ]
+  }})
 }}
 
 '''
