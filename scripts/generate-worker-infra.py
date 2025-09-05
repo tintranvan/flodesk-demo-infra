@@ -207,7 +207,6 @@ resource "aws_ecs_task_definition" "{name.replace('-', '_')}_task" {{
         {{ name = "PORT", value = "8080" }},
         {{ name = "SQS_QUEUE_URL", value = aws_sqs_queue.{name.replace('-', '_')}_queue.url }},
         # Application Signals
-        {{ name = "_X_AMZN_TRACE_ID", value = "" }},
         {{ name = "OTEL_PROPAGATORS", value = "tracecontext,baggage,xray" }},
         {{ name = "OTEL_RESOURCE_ATTRIBUTES", value = "service.name={name},service.version=1.0,deployment.environment={environment}" }}
       ]'''

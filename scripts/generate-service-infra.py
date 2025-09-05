@@ -85,7 +85,6 @@ resource "aws_lambda_function" "{name.replace('-', '_')}" {{
       AWS_LWA_ASYNC_INIT = "true"
       AWS_LWA_READINESS_CHECK_PATH = "/health"
       # Application Signals
-      _X_AMZN_TRACE_ID = ""
       OTEL_PROPAGATORS = "tracecontext,baggage,xray"
     }}
   }}
