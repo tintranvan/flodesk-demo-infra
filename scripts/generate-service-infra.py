@@ -267,11 +267,17 @@ output "lambda_arn" {{
 }}
 
 output "api_gateway_url" {{
-  value = data.terraform_remote_state.core.outputs.api_gateway_invoke_url
+  value = "${{data.terraform_remote_state.core.outputs.api_gateway_invoke_url}}/{service_config.get('stage', 'latest')}"
 }}
 
 output "api_gateway_stage" {{
   value = "{service_config.get('stage', 'latest')}"
+}}
+
+output "api_endpoints" {{
+  value = {{
+{'\n'.join([f'    "{endpoint["method"]} {endpoint["path"]}" = "${{data.terraform_remote_state.core.outputs.api_gateway_invoke_url}}/{service_config.get("stage", "latest")}{endpoint["path"]}"' for endpoint in service_config.get('api', {}).get('endpoints', [])])}
+  }}
 }}
 '''
     
